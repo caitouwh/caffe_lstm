@@ -20,10 +20,15 @@ BaseDataLayer<Dtype>::BaseDataLayer(const LayerParameter& param)
 template <typename Dtype>
 void BaseDataLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
-  if (top.size() == 1) {
+  if (top.size() < 2) {
     output_labels_ = false;
   } else {
     output_labels_ = true;
+  }
+  if (top.size() < 3) {
+    output_masks_ = false;
+  }else{
+    output_masks_ = true;
   }
   data_transformer_.reset(
       new DataTransformer<Dtype>(transform_param_, this->phase_));
@@ -55,6 +60,9 @@ void BasePrefetchingDataLayer<Dtype>::LayerSetUp(
     if (this->output_labels_) {
       prefetch_[i].label_.mutable_cpu_data();
     }
+    if (this->output_masks_) {
+      prefetch_[i].mask_.mutable_cpu_data();
+    }
   }
 #ifndef CPU_ONLY
   if (Caffe::mode() == Caffe::GPU) {
@@ -63,6 +71,9 @@ void BasePrefetchingDataLayer<Dtype>::LayerSetUp(
       if (this->output_labels_) {
         prefetch_[i].label_.mutable_gpu_data();
       }
+      if (this->output_masks_) {
+      prefetch_[i].mask_.mutable_gpu_data();
+    }
     }
   }
 #endif
@@ -119,6 +130,13 @@ void BasePrefetchingDataLayer<Dtype>::Forward_cpu(
     // Copy the labels.
     caffe_copy(batch->label_.count(), batch->label_.cpu_data(),
         top[1]->mutable_cpu_data());
+  }
+  if (this->output_masks_) {
+    // Reshape to loaded labels.
+    top[2]->ReshapeLike(batch->mask_);
+    // Copy the labels.
+    caffe_copy(batch->mask_.count(), batch->mask_.cpu_data(),
+        top[2]->mutable_cpu_data());
   }
 
   prefetch_free_.push(batch);

@@ -306,7 +306,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 140 (last added: batch_norm_param)
+// LayerParameter next available layer-specific ID: 144 (last added: recurrent_param)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -391,8 +391,65 @@ message LayerParameter {
   optional ThresholdParameter threshold_param = 128;
   optional TileParameter tile_param = 138;
   optional WindowDataParameter window_data_param = 129;
+  // add by mude
+  optional ReconstructParameter reconstruct_param = 140;
+  optional MPJPEParameter mpjpe_param = 141;
+  optional MultiLabelImageDataParameter multilabel_param = 142;
+
+  optional RecurrentParameter recurrent_param = 143;
+  optional SequenceInputParameter sequence_input_param = 144;
+
 }
 
+message SequenceInputParameter {
+  optional uint32 num_frame = 1;
+  optional uint32 num_buffer = 2 [default = 1];
+  optional uint32 frame_step = 3 [default = 1];
+  optional float  multiply_scale = 4 [default = 1.0]; // for fast converge
+
+}
+
+
+// Message that stores parameters used by RecurrentLayer
+message RecurrentParameter {
+  // The dimension of the output (and usually hidden state) representation --
+  // must be explicitly set to non-zero.
+  optional uint32 num_output = 1 [default = 0];
+
+  optional FillerParameter weight_filler = 2; // The filler for the weight
+  optional FillerParameter bias_filler = 3; // The filler for the bias
+
+  // Whether to enable displaying debug_info in the unrolled recurrent net.
+  optional bool debug_info = 4 [default = false];
+}
+
+
+message MultiLabelImageDataParameter {
+  optional float scale = 1 ; // the scale to avoid too big or too small label
+                             // should be equal to the scale in the MPJPEParameter
+
+}
+
+message MPJPEParameter {
+  optional uint32 sample_num = 1;
+  
+  optional float scale = 2; // the scale for remap to the origin label size
+  optional string save_filepath = 3 [default = "result.txt"];
+      
+}
+
+
+message ReconstructParameter {
+  optional uint32 atom_dim = 1;
+  optional uint32 dictionary_dim = 2;
+  
+  optional string dictionary_src = 3 [default = ""];
+  
+  optional FillerParameter weight_filler = 4;
+
+  optional bool update_dictionary = 5 [default = false];
+
+}
 // Message that stores parameters used to apply transformation
 // to the data layer's data
 message TransformationParameter {
@@ -631,6 +688,11 @@ message EltwiseParameter {
   // Whether to use an asymptotically slower (for >2 inputs) but stabler method
   // of computing the gradient for the PROD operation. (No effect for SUM op.)
   optional bool stable_prod_grad = 3 [default = true];
+
+  // If true and the EltwiseOp is SUM, the last bottom blob is a singleton
+  // coefficient for the first N-1 bottom blobs, with shape (N-1, 1, 1, 1).
+  optional bool coeff_blob = 4 [default = false];
+
 }
 
 // Message that stores parameters used by EmbedLayer
